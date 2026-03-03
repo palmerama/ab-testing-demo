@@ -9,13 +9,13 @@
     "dataset-import": "sanity dataset import ../data/production.tar.gz production"
   },
   "dependencies": {
-    "@sanity/icons": "^3",
-    "@sanity/personalization-plugin": "latest",
-    "@sanity/vision": "^3",
-    "react": "^19",
-    "react-dom": "^19",
-    "sanity": "^3",
-    "styled-components": "^6"
+    "@sanity/icons": "^3.7.4",
+    "@sanity/personalization-plugin": "^2.5.0",
+    "@sanity/vision": "^5.13.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "sanity": "^5.13.0",
+    "styled-components": "^6.3.11"
   },
   "devDependencies": {
     "@types/react": "^19",
