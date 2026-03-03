@@ -9,6 +9,7 @@
     "dataset-import": "sanity dataset import ../data/production.tar.gz production"
   },
   "dependencies": {
+    "@sanity/icons": "^3",
     "@sanity/personalization-plugin": "latest",
     "@sanity/vision": "^3",
     "react": "^19",
