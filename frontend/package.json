@@ -10,17 +10,17 @@
   },
   "dependencies": {
     "@growthbook/growthbook": "^1",
-    "@sanity/image-url": "^1",
+    "@sanity/image-url": "^1 || ^2",
     "next": "^15",
     "next-sanity": "^9",
     "react": "^19",
     "react-dom": "^19"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "autoprefixer": "^10",
     "postcss": "^8",
     "tailwindcss": "^4",
     "typescript": "^5"

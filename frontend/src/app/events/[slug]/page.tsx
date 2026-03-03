@@ -1,6 +1,6 @@
 import {GrowthBookTracking} from '@/lib/growthbookTracking'
 import {configureServerSideGrowthBook} from '@/lib/growthbookServer'
-import {client} from '@/sanity/client'
+import {client, projectId, dataset} from '@/sanity/client'
 import {EVENT_QUERY} from '@/sanity/queries'
 import {GrowthBook} from '@growthbook/growthbook'
 import imageUrlBuilder from '@sanity/image-url'
@@ -14,9 +14,8 @@ import {notFound} from 'next/navigation'
 const GB_UUID_COOKIE = 'gb-user-id'
 const EXPERIMENT_FLAG = 'event-name'
 
-const {projectId, dataset} = client.config()
-const urlFor = (source: SanityImageSource) =>
-  projectId && dataset ? imageUrlBuilder({projectId, dataset}).image(source) : null
+const builder = imageUrlBuilder({projectId, dataset})
+const urlFor = (source: SanityImageSource) => builder.image(source)
 
 export default async function EventPage({
   params,
@@ -36,22 +35,19 @@ export default async function EventPage({
 
   // Get user ID from cookie for consistent variant assignment
   const cookieStore = await cookies()
-  await gb.setAttributes({
-    id: cookieStore.get(GB_UUID_COOKIE)?.value || '',
-  })
+  const userId = cookieStore.get(GB_UUID_COOKIE)?.value || ''
+  await gb.setAttributes({id: userId})
 
   // Evaluate the feature flag — returns the variant value
   const variation = gb.getFeatureValue(EXPERIMENT_FLAG, 'default')
   const trackingData = gb.getDeferredTrackingCalls()
 
   // Pass variant into Sanity query
-  const queryParams = {
+  const event = await client.fetch(EVENT_QUERY, {
     slug,
     experiment: EXPERIMENT_FLAG,
     variant: variation,
-  }
-
-  const event = await client.fetch(EVENT_QUERY, queryParams)
+  })
 
   gb.destroy()
 
@@ -59,30 +55,38 @@ export default async function EventPage({
     notFound()
   }
 
-  const {name, date, headline, image, details, eventType, doorsOpen, venue, tickets} = event
+  const {name, date, headline, image, details, eventType, doorsOpen, venue, tickets} =
+    event as any
 
-  const eventImageUrl = image ? urlFor(image)?.width(550).height(310).url() : null
-  const eventDate = new Date(date).toDateString()
-  const eventTime = new Date(date).toLocaleTimeString()
-  const doorsOpenTime = new Date(
-    new Date(date).getTime() - doorsOpen * 60000,
-  ).toLocaleTimeString()
+  const eventImageUrl = image ? urlFor(image).width(550).height(310).url() : null
+  const eventDate = date ? new Date(date).toDateString() : null
+  const eventTime = date ? new Date(date).toLocaleTimeString() : null
+  const doorsOpenTime =
+    date && doorsOpen
+      ? new Date(new Date(date).getTime() - doorsOpen * 60000).toLocaleTimeString()
+      : null
 
   return (
     <main className="container mx-auto grid gap-12 p-12">
-      <div className="mb-4">
+      <div>
         <Link href="/" className="text-blue-600 hover:underline">
           ← Back to events
         </Link>
       </div>
       <div className="grid items-start gap-12 sm:grid-cols-2">
-        <Image
-          src={eventImageUrl || 'https://placehold.co/550x310/png'}
-          alt={name || 'Event'}
-          className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full"
-          height={310}
-          width={550}
-        />
+        {eventImageUrl ? (
+          <Image
+            src={eventImageUrl}
+            alt={name || 'Event'}
+            className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full"
+            height={310}
+            width={550}
+          />
+        ) : (
+          <div className="aspect-video rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">
+            No image
+          </div>
+        )}
         <div className="flex flex-col justify-center space-y-4">
           <div className="space-y-4">
             {eventType && (
@@ -100,11 +104,19 @@ export default async function EventPage({
                   <dt>{headline.name}</dt>
                 </>
               )}
-              <dd className="font-semibold">Date</dd>
-              <dt>{eventDate}</dt>
-              <dd className="font-semibold">Time</dd>
-              <dt>{eventTime}</dt>
-              {doorsOpen > 0 && (
+              {eventDate && (
+                <>
+                  <dd className="font-semibold">Date</dd>
+                  <dt>{eventDate}</dt>
+                </>
+              )}
+              {eventTime && (
+                <>
+                  <dd className="font-semibold">Time</dd>
+                  <dt>{eventTime}</dt>
+                </>
+              )}
+              {doorsOpenTime && (
                 <>
                   <dd className="font-semibold">Doors Open</dd>
                   <dt>{doorsOpenTime}</dt>
@@ -137,6 +149,14 @@ export default async function EventPage({
           )}
         </div>
       </div>
+
+      {/* Debug: A/B test info */}
+      <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+        <strong>A/B Test Debug:</strong> Experiment: <code>{EXPERIMENT_FLAG}</code> |
+        Variant: <code>{variation}</code> |
+        User: <code>{userId.slice(0, 8)}...</code>
+      </div>
+
       <GrowthBookTracking data={trackingData} />
     </main>
   )

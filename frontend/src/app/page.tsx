@@ -1,13 +1,12 @@
-import {client} from '@/sanity/client'
+import {client, projectId, dataset} from '@/sanity/client'
 import {EVENTS_QUERY} from '@/sanity/queries'
 import imageUrlBuilder from '@sanity/image-url'
 import type {SanityImageSource} from '@sanity/image-url/lib/types/types'
 import Image from 'next/image'
 import Link from 'next/link'
 
-const {projectId, dataset} = client.config()
-const urlFor = (source: SanityImageSource) =>
-  projectId && dataset ? imageUrlBuilder({projectId, dataset}).image(source) : null
+const builder = imageUrlBuilder({projectId, dataset})
+const urlFor = (source: SanityImageSource) => builder.image(source)
 
 export default async function HomePage() {
   const events = await client.fetch(EVENTS_QUERY)
@@ -18,7 +17,7 @@ export default async function HomePage() {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {events.map((event: any) => {
           const imageUrl = event.image
-            ? urlFor(event.image)?.width(550).height(310).url()
+            ? urlFor(event.image).width(550).height(310).url()
             : null
 
           return (
@@ -27,13 +26,19 @@ export default async function HomePage() {
               href={`/events/${event.slug?.current}`}
               className="group block rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
             >
-              <Image
-                src={imageUrl || 'https://placehold.co/550x310/png'}
-                alt={event.name || 'Event'}
-                width={550}
-                height={310}
-                className="aspect-video object-cover"
-              />
+              {imageUrl ? (
+                <Image
+                  src={imageUrl}
+                  alt={event.name || 'Event'}
+                  width={550}
+                  height={310}
+                  className="aspect-video object-cover"
+                />
+              ) : (
+                <div className="aspect-video bg-gray-100 flex items-center justify-center text-gray-400">
+                  No image
+                </div>
+              )}
               <div className="p-4">
                 <h2 className="text-xl font-semibold group-hover:text-blue-600 transition-colors">
                   {event.name}
