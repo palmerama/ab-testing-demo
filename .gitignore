@@ -1,6 +1,5 @@
-node_modules
+node_modules/
+.next/
 .env.local
-.next
-dist
-.sanity
-studio/production.tar.gz
+dist/
+*.log

@@ -5,7 +5,7 @@ import {fieldLevelExperiments} from '@sanity/personalization-plugin/growthbook'
 import {schemaTypes} from './schemaTypes'
 
 export default defineConfig({
-  name: 'default',
+  name: 'ab-testing-demo',
   title: 'A/B Testing Demo',
 
   projectId: 'zgg4eegm',

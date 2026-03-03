@@ -1,108 +1,65 @@
-# A/B Testing Demo — Sanity + GrowthBook + Next.js
+# A/B Testing Demo
 
-End-to-end A/B testing demo using:
-- **Sanity Studio** with `@sanity/personalization-plugin` (GrowthBook integration)
-- **GrowthBook** for experiment management and feature flags
-- **Next.js** frontend with server-side variant resolution
+End-to-end A/B testing with **Sanity Studio** + **GrowthBook** + **Next.js**.
 
-## Project Structure
+Based on the [Sanity Learn A/B Testing course](https://www.sanity.io/learn/course/a-b-testing), extended with real GrowthBook integration.
+
+## Structure
 
 ```
-├── studio/          # Sanity Studio (standalone)
-│   ├── schemaTypes/ # Event, Artist, Venue schemas
-│   └── sanity.config.ts
-├── frontend/        # Next.js app
-│   ├── src/
-│   │   ├── app/         # Pages (events list + event detail)
-│   │   ├── sanity/      # Client, queries, env
-│   │   ├── lib/         # GrowthBook server + tracking
-│   │   └── middleware.ts # Cookie-based user ID assignment
-│   └── .env.local.example
+├── studio/          # Sanity Studio with @sanity/personalization-plugin (GrowthBook)
+├── frontend/        # Next.js app with GrowthBook SDK
+├── data/            # Sample dataset (events, artists, venues)
 └── README.md
 ```
 
 ## Setup
 
-### 1. Install dependencies
+### 1. Import sample data
 
 ```bash
-# Studio
 cd studio
 npm install
-
-# Frontend
-cd ../frontend
-npm install
+npx sanity dataset import ../data/production.tar.gz production
 ```
 
-### 2. Import seed data
-
-Download the seed data and import it:
+### 2. Start Sanity Studio
 
 ```bash
 cd studio
-curl -L -o production.tar.gz "https://cdn.sanity.io/files/3do82whm/next/ac266d280e1806c1aeb6b01ebf7a5e4516ead0c1.gz"
-npx sanity dataset import production.tar.gz production
-```
-
-This imports events, artists, and venues (2010–2030).
-
-### 3. Configure GrowthBook
-
-1. Create a GrowthBook account at [growthbook.io](https://www.growthbook.io)
-2. Create an **SDK Connection** (Node.js) → copy the **Client Key**
-3. Create an **API Key** (readonly) → this is used by the Sanity plugin
-
-#### Create a Feature Flag in GrowthBook:
-1. Go to **Features** → **Add Feature**
-2. Name: `event-name`
-3. Value type: **String**
-4. Default value: `control`
-5. Add an **Experiment Rule**:
-   - Control: `control`
-   - Variation 1: `variant`
-6. Save and **Publish**
-
-### 4. Configure environment variables
-
-```bash
-cd frontend
-cp .env.local.example .env.local
-# Edit .env.local with your GrowthBook Client Key
-```
-
-### 5. Enter GrowthBook API key in Studio
-
-When you first open an experiment field in the Studio, you'll be prompted to enter the GrowthBook readonly API key. This is stored in the Content Lake.
-
-### 6. Run
-
-```bash
-# Terminal 1 — Studio
-cd studio
-npx sanity dev
-
-# Terminal 2 — Frontend
-cd frontend
 npm run dev
 ```
 
-- Studio: http://localhost:3333
-- Frontend: http://localhost:3000
+### 3. Configure GrowthBook
 
-## How It Works
+1. Create an experiment/feature flag in GrowthBook (e.g. `event-name`)
+2. Add variants: `control` and `variant`
+3. Get your **Client Key** from SDK Configuration → SDK Connections
 
-### Studio
-The `event` schema has a `newName` field of type `experimentString`. This field lets editors set a default value and variant values for each experiment. The plugin fetches available experiments from GrowthBook automatically.
+### 4. Start the frontend
 
-### Frontend
-1. **Middleware** assigns each visitor a unique ID via a `gb-user-id` cookie
-2. **GrowthBook SDK** evaluates the feature flag server-side to determine the variant
-3. **GROQ query** uses `coalesce()` to resolve the correct variant content:
-   - First tries the matching variant value
-   - Falls back to the experiment default
-   - Falls back to the original `name` field
-4. **Tracking component** logs experiment views (replace with your analytics)
+```bash
+cd frontend
+npm install
+cp .env.local.example .env.local
+# Edit .env.local with your GrowthBook Client Key
+npm run dev
+```
 
-### Debug
-Each event page shows a debug bar at the bottom with the current experiment, variant, and user ID. Clear the `gb-user-id` cookie to get a new random assignment.
+### 5. Set up experiment content in Studio
+
+1. Open an Event document
+2. In the "Name (Experiment)" field, add a default value
+3. Click the flask icon to add an experiment
+4. Select your GrowthBook experiment
+5. Add variant content
+6. Publish
+
+Visit the event page in the frontend — different users will see different content based on their assigned variant.
+
+## How it works
+
+1. **Middleware** assigns each visitor a unique ID (cookie-based)
+2. **GrowthBook SDK** evaluates the feature flag server-side, determining which variant to show
+3. **GROQ query** uses `coalesce()` to resolve the correct variant content from Sanity
+4. **Tracking component** fires experiment view events (replace with your analytics)
